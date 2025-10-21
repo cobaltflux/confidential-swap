@@ -1482,15 +1482,15 @@ export const CONFIDENTIAL_SWAP_ABI = [
 
 export const CONTRACTS: Record<"cEth" | "cUsdc" | "swap", ContractConfig> = {
   cEth: {
-    address: '0x0000000000000000000000000000000000000000',
+    address: '0x1635A68588fc4a337EebC558677422e58e095778',
     abi: CONFIDENTIAL_ETH_ABI,
   },
   cUsdc: {
-    address: '0x0000000000000000000000000000000000000000',
+    address: '0x96567a546A15f9440e831A323bc8D5eeaE265f2F',
     abi: CONFIDENTIAL_USDC_ABI,
   },
   swap: {
-    address: '0x0000000000000000000000000000000000000000',
+    address: '0x7A3c9F5D97fc1707B088be4488d3113FE36CfD83',
     abi: CONFIDENTIAL_SWAP_ABI,
   },
 };
