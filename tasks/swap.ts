@@ -120,6 +120,68 @@ task("swap:cusdc-to-ceth", "Swaps cUSDC to cETH at the fixed rate")
     console.log(`Status: ${receipt?.status}`);
   });
 
+task("swap:fund", "Adds liquidity to the ConfidentialSwap contract")
+  .addParam("ceth", "Amount of cETH liquidity (uint64)")
+  .addOptionalParam("cusdc", "Amount of cUSDC liquidity (uint64). Defaults to cETH * 4000")
+  .setAction(async function (taskArguments: TaskArguments, hre) {
+    const cEthAmount = BigInt(taskArguments.ceth);
+    if (cEthAmount <= 0) {
+      throw new Error("cETH liquidity must be greater than zero");
+    }
+
+    const cusdcArg = taskArguments.cusdc as string | undefined;
+    const cUsdcAmount = cusdcArg ? BigInt(cusdcArg) : cEthAmount * 4_000n;
+    if (cUsdcAmount <= 0) {
+      throw new Error("cUSDC liquidity must be greater than zero");
+    }
+
+    if (!hre.fhevm.isMock) {
+      await hre.fhevm.initializeCLIApi();
+    }
+
+    const [signer] = await hre.ethers.getSigners();
+    const swapDeployment = await hre.deployments.get("ConfidentialSwap");
+    const cEthDeployment = await hre.deployments.get("ConfidentialETH");
+    const cUsdcDeployment = await hre.deployments.get("ConfidentialUSDC");
+
+    const cEth = await hre.ethers.getContractAt("ConfidentialETH", cEthDeployment.address, signer);
+    const cUsdc = await hre.ethers.getContractAt("ConfidentialUSDC", cUsdcDeployment.address, signer);
+
+    const mintTxs = [
+      await cEth.mint(cEthAmount),
+      await cUsdc.mint(cUsdcAmount),
+    ];
+
+    for (const tx of mintTxs) {
+      console.log(`Waiting for mint tx ${tx.hash}`);
+      await tx.wait();
+    }
+
+    const cEthBuffer = await hre.fhevm.createEncryptedInput(cEthDeployment.address, signer.address);
+    cEthBuffer.add64(cEthAmount);
+    const cEthCiphertext = await cEthBuffer.encrypt();
+    const cEthTx = await cEth
+      ["confidentialTransfer(address,bytes32,bytes)"](
+        swapDeployment.address,
+        cEthCiphertext.handles[0],
+        cEthCiphertext.inputProof,
+      );
+    console.log(`Funding swap with ${cEthAmount} cETH... tx: ${cEthTx.hash}`);
+    await cEthTx.wait();
+
+    const cUsdcBuffer = await hre.fhevm.createEncryptedInput(cUsdcDeployment.address, signer.address);
+    cUsdcBuffer.add64(cUsdcAmount);
+    const cUsdcCiphertext = await cUsdcBuffer.encrypt();
+    const cUsdcTx = await cUsdc
+      ["confidentialTransfer(address,bytes32,bytes)"](
+        swapDeployment.address,
+        cUsdcCiphertext.handles[0],
+        cUsdcCiphertext.inputProof,
+      );
+    console.log(`Funding swap with ${cUsdcAmount} cUSDC... tx: ${cUsdcTx.hash}`);
+    await cUsdcTx.wait();
+  });
+
 task("token:decrypt-balance", "Decrypts the caller balance of a confidential token")
   .addParam("token", "Token key: ceth or cusdc")
   .setAction(async function (taskArguments: TaskArguments, hre) {
