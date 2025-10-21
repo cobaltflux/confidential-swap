@@ -6,16 +6,37 @@ import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import type { HardhatUserConfig } from "hardhat/config";
-import { vars } from "hardhat/config";
 import "solidity-coverage";
+import * as dotenv from "dotenv";
 
 import "./tasks/accounts";
-import "./tasks/FHECounter";
+import "./tasks/swap";
 
-// Run 'npx hardhat vars setup' to see the list of variables that need to be set
+dotenv.config();
 
-const MNEMONIC: string = vars.get("MNEMONIC", "test test test test test test test test test test test junk");
-const INFURA_API_KEY: string = vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+const DEFAULT_MNEMONIC = "test test test test test test test test test test test junk";
+const MNEMONIC = process.env.MNEMONIC ?? DEFAULT_MNEMONIC;
+const PRIVATE_KEY = process.env.PRIVATE_KEY
+  ? process.env.PRIVATE_KEY.startsWith("0x")
+    ? process.env.PRIVATE_KEY
+    : `0x${process.env.PRIVATE_KEY}`
+  : undefined;
+const INFURA_API_KEY = process.env.INFURA_API_KEY ?? "";
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY ?? "";
+
+const LOCAL_ACCOUNTS = {
+  mnemonic: MNEMONIC,
+  path: "m/44'/60'/0'/0/",
+  count: 10,
+};
+
+const SEPOLIA_ACCOUNTS = PRIVATE_KEY && PRIVATE_KEY.length > 2
+  ? [PRIVATE_KEY]
+  : {
+      mnemonic: MNEMONIC,
+      path: "m/44'/60'/0'/0/",
+      count: 1,
+    };
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -24,7 +45,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      sepolia: vars.get("ETHERSCAN_API_KEY", ""),
+      sepolia: ETHERSCAN_API_KEY,
     },
   },
   gasReporter: {
@@ -34,26 +55,16 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      accounts: {
-        mnemonic: MNEMONIC,
-      },
+      accounts: LOCAL_ACCOUNTS,
       chainId: 31337,
     },
     anvil: {
-      accounts: {
-        mnemonic: MNEMONIC,
-        path: "m/44'/60'/0'/0/",
-        count: 10,
-      },
+      accounts: LOCAL_ACCOUNTS,
       chainId: 31337,
       url: "http://localhost:8545",
     },
     sepolia: {
-      accounts: {
-        mnemonic: MNEMONIC,
-        path: "m/44'/60'/0'/0/",
-        count: 10,
-      },
+      accounts: SEPOLIA_ACCOUNTS,
       chainId: 11155111,
       url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
     },
