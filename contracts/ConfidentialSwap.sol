@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 pragma solidity ^0.8.27;
 
-import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 
 import {ConfidentialETH} from "./ConfidentialETH.sol";
 import {ConfidentialUSDC} from "./ConfidentialUSDC.sol";
 
-contract ConfidentialSwap is SepoliaConfig {
+contract ConfidentialSwap is ZamaEthereumConfig {
     error ConfidentialSwapInvalidAddress();
 
     ConfidentialETH public immutable cEth;
